@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>BrainPlay - Word Puzzles & Brain Training</title>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* ===== Design tokens ===== */
+:root{--bg:#fff6ec;--ink:#3b2f4a;--pink:#ffc2d9;--mint:#b8f0d8;--sky:#bfe3ff;--sun:#ffe69a;--lav:#d9ccff;--peach:#ffd3b5;--ok:#1f9d6a;--bad:#d6454b;--line:3px solid var(--ink)}
+*{box-sizing:border-box}
+body{margin:0;font-family:Fredoka,"Trebuchet MS",system-ui,sans-serif;background:var(--bg);color:var(--ink);min-height:100vh;line-height:1.45}
+h1,h2,h3{margin:.4em 0}h1{font-size:2rem}
+main{max-width:1000px;margin:0 auto;padding:16px 16px 60px}
+:focus-visible{outline:3px dashed #7a5cff;outline-offset:3px}
+.screen{display:none}.screen.active{display:block;animation:in .3s}
+@keyframes in{from{opacity:0;transform:translateY(8px)}}
+/* ===== Components ===== */
+.nav{display:flex;gap:8px;align-items:center;justify-content:space-between;flex-wrap:wrap;padding:10px 16px;background:var(--sun);border-bottom:var(--line);position:sticky;top:0;z-index:5}
+.nav div{display:flex;gap:8px}
+.brand{font:700 1.6rem Fredoka,sans-serif;background:none;border:0;cursor:pointer;color:var(--ink);display:flex;gap:8px;align-items:center}
+.btn{font:600 1rem Fredoka,sans-serif;padding:10px 18px;border:var(--line);border-radius:16px;background:#fff;color:var(--ink);cursor:pointer;box-shadow:0 4px 0 var(--ink);transition:transform .1s,box-shadow .1s}
+.btn:hover{transform:translateY(-2px);box-shadow:0 6px 0 var(--ink)}
+.btn:active{transform:translateY(3px);box-shadow:0 1px 0 var(--ink)}
+.btn.go{background:var(--mint)}.btn.alt{background:var(--pink)}.btn.sky{background:var(--sky)}
+.btn.big{font-size:1.3rem;padding:14px 28px}
+.btn:disabled{opacity:.5;cursor:not-allowed;transform:none}
+.nav .btn[aria-current=page]{background:var(--lav)}
+.card{background:#fff;border:var(--line);border-radius:24px;padding:18px;box-shadow:0 6px 0 var(--ink);margin:14px 0}
+.grid{display:grid;gap:14px}.g5{grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}.g3{grid-template-columns:repeat(auto-fit,minmax(130px,1fr))}
+.hero{display:flex;gap:20px;align-items:center;flex-wrap:wrap;background:var(--lav)}
+.hero>div{flex:1;min-width:230px}
+.stat{background:#fff;border:var(--line);border-radius:20px;padding:12px;text-align:center;display:flex;flex-direction:column;gap:2px}
+.stat span{font-size:1.6rem}.stat b{font-size:1.5rem}.stat small{opacity:.75}
+.pick{cursor:pointer;font:600 1rem Fredoka,sans-serif;color:var(--ink);text-align:center;display:flex;flex-direction:column;gap:6px;align-items:center;margin:0}
+.pick.on{transform:translateY(-4px) rotate(-1.5deg);outline:4px solid var(--ink)}
+.pick:hover{transform:translateY(-3px)}
+.ico{font-size:2.4rem}
+.seg{display:inline-flex;border:var(--line);border-radius:16px;overflow:hidden;margin:6px 0}
+.seg button{font:600 1rem Fredoka,sans-serif;border:0;padding:8px 16px;background:#fff;cursor:pointer;color:var(--ink)}
+.seg button.on{background:var(--pink)}
+.pill{border:var(--line);border-radius:999px;padding:6px 14px;background:var(--sun);font-weight:600}
+.pill.low{background:var(--bad);color:#fff;animation:pulse 1s infinite}
+@keyframes pulse{50%{transform:scale(1.07)}}
+.bar2{display:flex;gap:10px;align-items:center;flex-wrap:wrap}.bar2 h2{flex:1;margin:0;min-width:140px}
+.play{background:var(--sky);min-height:240px;text-align:center}
+.ctl{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+.fb{text-align:center;font-weight:600;min-height:1.6em;margin:12px 0}.fb.ok{color:var(--ok)}.fb.bad{color:var(--bad)}
+.chip{display:inline-block;background:#fff;border:var(--line);border-radius:999px;padding:2px 14px;font-weight:600}
+.clue{font-size:1.25rem;font-weight:600}
+.tiles,.mask{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin:12px 0}
+.tile,.slot{width:46px;height:52px;border:var(--line);border-radius:12px;background:var(--sun);font:700 1.5rem Fredoka,sans-serif;color:var(--ink);cursor:pointer;display:grid;place-items:center;box-shadow:0 3px 0 var(--ink)}
+.tile.used{opacity:.3}.slot{background:#fff;cursor:default}
+.field{font:600 1.3rem Fredoka,sans-serif;text-align:center;text-transform:uppercase;padding:10px;border:var(--line);border-radius:14px;width:min(320px,100%);color:var(--ink)}
+.sgrid{display:grid;gap:4px;justify-content:center;margin:10px auto}
+.cell{width:clamp(30px,8.5vw,46px);aspect-ratio:1;border:2px solid var(--ink);border-radius:10px;background:#fff;font:700 1.1rem Fredoka,sans-serif;color:var(--ink);cursor:pointer;padding:0}
+.cell.sel{background:var(--sun);transform:scale(1.08)}.cell.found{background:var(--mint)}.cell.hint{animation:pulse .5s 4;background:var(--pink)}
+.words{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;list-style:none;padding:0}
+.words li{background:#fff;border:2px solid var(--ink);border-radius:999px;padding:2px 12px;font-weight:600}.words li.done{background:var(--mint);text-decoration:line-through}
+.mgrid{display:grid;gap:10px;max-width:460px;margin:10px auto}
+.mcard{aspect-ratio:1;font-size:2rem;border:var(--line);border-radius:16px;background:var(--peach);cursor:pointer;color:var(--ink);font-family:inherit;transition:transform .2s}
+.mcard.open{background:#fff;transform:rotateY(180deg) rotateY(180deg) scale(1.05)}.mcard.match{background:var(--mint)}
+.pads{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;max-width:380px;margin:14px auto}
+.pad{height:84px;font-size:2rem;border:var(--line);border-radius:20px;cursor:pointer;color:var(--ink);font-family:inherit;opacity:.75;transition:.15s}
+.pad.lit{opacity:1;transform:scale(1.12);box-shadow:0 0 0 6px #fff,0 0 0 9px var(--ink)}
+.shake{animation:shake .35s}@keyframes shake{25%{transform:translateX(-7px)}75%{transform:translateX(7px)}}
+.res{text-align:center;background:var(--pink)}.big{font-size:2.6rem;font-weight:700;margin:4px}.stars{font-size:2.4rem}
+.row{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:14px}
+.prog{height:16px;border:var(--line);border-radius:999px;background:#fff;overflow:hidden}.prog i{display:block;height:100%;background:var(--mint)}
+table{width:100%;border-collapse:collapse}th,td{padding:6px 8px;text-align:left;border-bottom:2px dashed #d8cde8}
+.tw{overflow-x:auto}
+.ach{text-align:center;padding:12px;margin:0}.ach.lock{opacity:.45;filter:grayscale(1)}.ach span{font-size:2rem}.ach small{display:block}
+.empty{text-align:center;opacity:.8}
+.name{font:600 1rem Fredoka,sans-serif;padding:6px 10px;border:var(--line);border-radius:12px;width:160px;color:var(--ink)}
+@media(max-width:560px){h1{font-size:1.6rem}.tile,.slot{width:38px;height:44px;font-size:1.2rem}}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<nav class="nav" aria-label="Main">
+  <button class="brand" data-act="go" data-v="home" aria-label="BrainPlay home">
+    <svg width="40" height="40" viewBox="0 0 40 40" aria-hidden="true"><ellipse cx="20" cy="21" rx="17" ry="15" fill="#ffc2d9" stroke="#3b2f4a" stroke-width="3"/><circle cx="14" cy="19" r="2.5" fill="#3b2f4a"/><circle cx="26" cy="19" r="2.5" fill="#3b2f4a"/><path d="M13 26q7 6 14 0" stroke="#3b2f4a" stroke-width="3" fill="none" stroke-linecap="round"/></svg>BrainPlay</button>
+  <div>
+    <button class="btn" data-nav="home" data-act="go" data-v="home">Home</button>
+    <button class="btn" data-nav="select" data-act="go" data-v="select">Games</button>
+    <button class="btn" data-nav="dash" data-act="go" data-v="dash">Dashboard</button>
+  </div>
+</nav>
+<main>
+  <section id="home" class="screen active"></section>
+  <section id="select" class="screen"></section>
+  <section id="play" class="screen">
+    <div class="bar2">
+      <button class="btn" data-act="go" data-v="select">← Back</button>
+      <h2 id="pTitle"></h2>
+      <span class="pill" id="pTime">0:00</span><span class="pill" id="pScore">0 pts</span>
+      <button class="btn sky" id="hintBtn" data-act="hint">Hint</button>
+      <button class="btn" data-act="restart">Restart</button>
+    </div>
+    <p class="card" id="how" style="background:var(--sun)"></p>
+    <div class="card play" id="area"></div>
+    <div class="ctl" id="ctl"></div>
+    <p class="fb" id="fb" role="status" aria-live="polite"></p>
+  </section>
+  <section id="results" class="screen"></section>
+  <section id="dash" class="screen"></section>
+</main>
+
+<script>
+/* ================= Helpers ================= */
+const $=s=>document.querySelector(s);
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const pad2=n=>String(n).padStart(2,'0');
+const fmtDate=d=>d.getFullYear()+'-'+pad2(d.getMonth()+1)+'-'+pad2(d.getDate());
+const today=()=>fmtDate(new Date());
+const dayOffset=n=>fmtDate(new Date(Date.now()+n*864e5));
+// Seeded random generator: same seed -> same puzzle (used for Daily Challenge)
+function seedRng(str){let h=1779033703^str.length;for(let i=0;i<str.length;i++){h=Math.imul(h^str.charCodeAt(i),3432918353);h=h<<13|h>>>19}let a=h>>>0;
+  return()=>{a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+const shuffle=(arr,r=Math.random)=>{const a=[...arr];for(let i=a.length-1;i>0;i--){const j=Math.floor(r()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
+
+/* ================= Storage ================= */
+const KEY='brainplay.v1';
+const fresh=()=>({name:'Player',games:[],streak:0,longest:0,lastDay:null,daily:{}});
+function load(){try{return Object.assign(fresh(),JSON.parse(localStorage.getItem(KEY))||{})}catch(e){return fresh()}}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
+let S=load();
+const curStreak=()=>(S.lastDay===today()||S.lastDay===dayOffset(-1))?S.streak:0;
+const totalPts=()=>S.games.reduce((a,g)=>a+g.score,0);
+const bestPts=()=>S.games.length?Math.max(...S.games.map(g=>g.score)):0;
+
+/* ================= Config & data ================= */
+const PTS={correct:100,speed:50,hint:15,finish:100,daily:50};
+const DIFF={b:'Beginner',i:'Intermediate'};
+const GAMES=[
+ {id:'scramble',name:'Word Scramble',icon:'🔤',color:'#ffc2d9',pen:20,time:{b:120,i:90},hints:{b:3,i:1},desc:'Unscramble the letters to find the hidden word.',how:'Tap the letters or type the word, then press Submit. Each word has a clue.'},
+ {id:'search',name:'Word Search',icon:'🔎',color:'#bfe3ff',pen:20,time:{b:150,i:120},hints:{b:3,i:1},desc:'Find the hidden words in the letter grid.',how:'Tap letters one after another in a straight line. Matches are found automatically; press Check if you think you have a word.'},
+ {id:'guess',name:'Guess the Word',icon:'💭',color:'#ffe69a',pen:20,time:{b:120,i:90},hints:{b:3,i:1},desc:'Solve each word from a clue, with optional letter hints.',how:'Read the clue and type your guess. You get 3 tries per word. Hints reveal a letter.'},
+ {id:'memory',name:'Memory Match',icon:'🃏',color:'#b8f0d8',pen:10,time:{b:120,i:100},hints:{b:3,i:1},desc:'Flip cards and find all the matching pairs.',how:'Tap two cards to flip them. Matching pairs stay open. A hint lets you peek at every card.'},
+ {id:'sequence',name:'Sequence Memory',icon:'🎵',color:'#d9ccff',pen:20,time:{b:150,i:120},hints:{b:3,i:1},desc:'Memorize a growing pattern and repeat it.',how:'Watch the pads light up, then tap them in the same order. A hint replays the pattern.'}
+];
+const SC_B=[['APPLE','A crunchy red or green fruit'],['TIGER','A big cat with stripes'],['BREAD','Baked from dough, great with butter'],['RIVER','Water flowing toward the sea'],['CLOUD','A white fluffy shape in the sky'],['SMILE','A happy face expression'],['BEACH','Sand, waves and sunshine'],['PIZZA','A cheesy round Italian dish']];
+const SC_I=[['JOURNEY','A long trip from one place to another'],['LANTERN','A light you can carry'],['MYSTERY','Something unexplained'],['VOLCANO','A mountain that erupts'],['CAPTAIN','The leader of a ship'],['BLANKET','Keeps you warm in bed'],['DOLPHIN','A clever sea mammal'],['PYRAMID','An ancient Egyptian tomb']];
+const GU_B=[['LION','Roars, king of the jungle'],['MOON','Glows in the night sky'],['BOOK','You read it page by page'],['FROG','A green hopper that says ribbit'],['SNOW','Cold white flakes in winter'],['CAKE','A birthday treat with candles'],['KITE','Flies on a string in the wind'],['SHIP','A big boat that crosses oceans']];
+const GU_I=[['LIBRARY','A quiet place full of books'],['ELEPHANT','A huge animal with a trunk'],['UMBRELLA','Keeps you dry in the rain'],['TELESCOPE','Used to look at distant stars'],['CHOCOLATE','A sweet treat made from cocoa'],['BUTTERFLY','Starts life as a caterpillar'],['KEYBOARD','You type on it'],['MOUNTAIN','A very tall landform']];
+const SW_B=['CAT','SUN','BEE','FISH','BIRD','TREE','MOON','STAR'];
+const SW_I=['PLANET','ROCKET','GALAXY','COMET','ORBIT','SOLAR','METEOR','LUNAR'];
+const EMOJI=['🍎','🐶','🌟','🚀','🎈','🍕','🐱','🎸','🌈','🦋','🍩','⚽'];
+const PADS=[['#ff9aa2','🔺'],['#ffe29a','⭐'],['#9be3c0','🍀'],['#9ccfff','🌙'],['#cdb8ff','🔷'],['#ffc29a','🧡']];
+const ACH=[
+ ['🌱','First Steps','Finish your first game',s=>s.games.length>=1],
+ ['🔥','On Fire','Reach a 3-day streak',s=>s.longest>=3],
+ ['🎯','Sharpshooter','100% accuracy with 3+ correct',s=>s.games.some(g=>g.acc===100&&g.correct>=3)],
+ ['⚡','Speedster','Solve a game with half the time left',s=>s.games.some(g=>g.complete&&g.left>=g.total/2)],
+ ['🧘','Hint-Free','Complete a game with no hints',s=>s.games.some(g=>g.complete&&g.hints===0)],
+ ['🏆','High Scorer','Score 800+ in one game',s=>s.games.some(g=>g.score>=800)],
+ ['🧩','All-Rounder','Play all five game modes',s=>new Set(s.games.map(g=>g.game)).size>=5],
+ ['🎓','Brain Builder','Play 10 games',s=>s.games.length>=10],
+ ['📅','Daily Champion','Complete a Daily Challenge',s=>s.games.some(g=>g.daily&&g.complete)],
+ ['🚀','Level Up','Complete an Intermediate game',s=>s.games.some(g=>g.diff==='i'&&g.complete)]
+];
+const gameMeta=id=>GAMES.find(g=>g.id===id);
+const dailyGame=()=>GAMES[Math.floor(seedRng('daily-'+today())()*GAMES.length)];
+
+/* ================= Navigation ================= */
+let G=null,sel={game:'scramble',diff:'b'},last=null;
+function show(id){
+  if(G&&!G.ended&&id!=='play')stopGame();           // leaving a running game abandons it
+  document.querySelectorAll('.screen').forEach(s=>s.classList.toggle('active',s.id===id));
+  document.querySelectorAll('[data-nav]').forEach(b=>b.setAttribute('aria-current',b.dataset.nav===id?'page':'false'));
+  const r={home:renderHome,select:renderSelect,dash:renderDash}[id];if(r)r();
+  scrollTo(0,0);
+}
+document.addEventListener('click',e=>{
+  const b=e.target.closest('[data-act]');if(!b)return;const v=b.dataset.v;
+  const acts={
+    go:()=>show(v),pick:()=>{sel.game=v;renderSelect()},diff:()=>{sel.diff=v;renderSelect()},
+    pickgo:()=>{sel.game=v;show('select')},play:()=>startGame(sel.game,sel.diff),daily:()=>startGame(dailyGame().id,'i',true),
+    retry:()=>last&&startGame(last.game,last.diff,last.daily),restart:()=>last&&startGame(last.game,last.diff,last.daily),
+    next:()=>{const i=GAMES.findIndex(g=>g.id===last.game);startGame(GAMES[(i+1)%GAMES.length].id,last.diff)},
+    hint:useHint,wipe:()=>{if(confirm('Delete all scores, streaks and badges?')){S=fresh();save();renderDash()}}
+  };(acts[b.dataset.act]||(()=>{}))();
+});
+document.addEventListener('change',e=>{
+  if(e.target.id==='nameIn'){S.name=e.target.value.trim().slice(0,14)||'Player';e.target.value=S.name;save()}
+});
+
+/* ================= Game engine ================= */
+function startGame(id,diff,daily=false){
+  stopGame();
+  const m=gameMeta(id);last={game:id,diff,daily};
+  const rng=daily?seedRng('brainplay-'+today()+id+diff):Math.random;   // same date -> same puzzle
+  G={meta:m,diff,daily,rng,time:m.time[diff],left:m.time[diff],score:0,correct:0,mistakes:0,hints:0,hintsLeft:m.hints[diff],ended:false,timers:[],iv:null,api:null,
+     later(fn,ms){const g=this;g.timers.push(setTimeout(()=>{if(!g.ended)fn()},ms))}};
+  $('#pTitle').textContent=`${m.icon} ${m.name} (${DIFF[diff]}${daily?', Daily':''})`;
+  $('#how').textContent='How to play: '+m.how;
+  $('#area').innerHTML='';$('#ctl').innerHTML='';fb('');
+  show('play');
+  G.api=GAME_FNS[id](G,$('#area'),$('#ctl'));
+  updateHUD();
+  G.iv=setInterval(tick,1000);                        // only ever one interval: stopGame() clears it first
+}
+function stopGame(){if(!G)return;G.ended=true;clearInterval(G.iv);G.timers.forEach(clearTimeout);G.timers=[]}
+function tick(){if(!G||G.ended)return;G.left--;updateHUD();if(G.left<=0)finish('time')}
+function updateHUD(){
+  if(!G)return;
+  const t=Math.max(0,G.left);$('#pTime').textContent=`⏱ ${Math.floor(t/60)}:${pad2(t%60)}`;
+  $('#pTime').classList.toggle('low',t<=10);$('#pScore').textContent=`⭐ ${G.score} pts`;
+  const h=$('#hintBtn');h.textContent=`💡 Hint (${G.hintsLeft})`;h.disabled=G.ended||G.hintsLeft<=0;
+}
+function fb(msg,ok){
+  const f=$('#fb');f.textContent=msg;f.className='fb '+(msg?(ok?'ok':'bad'):'');
+  if(msg&&!ok){const a=$('#area');a.classList.remove('shake');void a.offsetWidth;a.classList.add('shake')}
+}
+function award(g,msg){          // correct answer: base + speed bonus
+  if(g.ended)return;const sp=Math.round(PTS.speed*g.left/g.time);
+  g.score+=PTS.correct+sp;g.correct++;fb(`✅ ${msg||'Correct!'} +${PTS.correct+sp} (${PTS.correct} + ${sp} speed bonus)`,true);updateHUD();
+}
+function miss(g,msg){           // wrong answer penalty
+  if(g.ended)return;g.mistakes++;g.score=Math.max(0,g.score-g.meta.pen);fb(`❌ ${msg} −${g.meta.pen}`,false);updateHUD();
+}
+function useHint(){
+  const g=G;if(!g||g.ended)return;
+  if(g.hintsLeft<=0){fb('No hints left!',false);return}
+  const m=g.api.hint();if(m===false)return;       // games return false when a hint is not possible
+  g.hintsLeft--;g.hints++;g.score=Math.max(0,g.score-PTS.hint);fb(`💡 ${m} −${PTS.hint}`,true);updateHUD();
+}
+function finish(reason){
+  const g=G;if(!g||g.ended)return;
+  const done=reason==='complete',d=today();
+  if(done){g.score+=PTS.finish;if(g.daily&&!(S.daily[d]&&S.daily[d].done))g.score+=PTS.daily}
+  stopGame();updateHUD();
+  const tot=g.correct+g.mistakes,prevBest=bestPts();
+  const r={t:Date.now(),date:d,game:g.meta.id,diff:g.diff,score:g.score,correct:g.correct,mistakes:g.mistakes,hints:g.hints,
+    acc:tot?Math.round(g.correct/tot*100):0,secs:g.time-Math.max(0,g.left),left:Math.max(0,g.left),total:g.time,complete:done,daily:g.daily,name:S.name};
+  S.games.push(r);if(S.games.length>300)S.games.shift();
+  if(S.lastDay!==d){S.streak=S.lastDay===dayOffset(-1)?S.streak+1:1;S.lastDay=d}
+  S.longest=Math.max(S.longest,S.streak);
+  if(g.daily){const o=S.daily[d]||{};S.daily[d]={score:Math.max(o.score||0,g.score),done:o.done||done}}
+  save();renderResults(r,r.score>prevBest&&S.games.length>1);show('results');
+}
+
+/* ================= Games ================= */
+const GAME_FNS={
+
+/* ---- Word Scramble ---- */
+scramble(g,area,ctl){
+  const pool=shuffle(g.diff==='b'?SC_B:SC_I,g.rng).slice(0,5);let i=0,done=false,hk=0,tiles=[];
+  area.innerHTML=`<span class="chip" id="prog"></span><p class="clue" id="clue"></p><div class="tiles" id="tiles"></div><input id="ans" class="field" autocomplete="off" maxlength="12" aria-label="Your answer" placeholder="Type or tap letters">`;
+  ctl.innerHTML=`<button class="btn go" id="sub">Submit</button><button class="btn" id="clr">Clear</button>`;
+  const ans=$('#ans');
+  const sync=()=>{const v=ans.value.toUpperCase().split('');tiles.forEach(t=>{const k=v.indexOf(t.dataset.l);if(k>-1){v.splice(k,1);t.classList.add('used')}else t.classList.remove('used')})};
+  function load(){
+    const [w,c]=pool[i];done=false;hk=0;ans.value='';
+    $('#prog').textContent=`Word ${i+1} of ${pool.length}`;$('#clue').textContent='Clue: '+c;
+    let s,n=0;do{s=shuffle(w.split(''),g.rng)}while(s.join('')===w&&n++<20);
+    $('#tiles').innerHTML=s.map(l=>`<button class="tile" data-l="${l}">${l}</button>`).join('');
+    tiles=[...document.querySelectorAll('.tile')];
+    tiles.forEach(t=>t.onclick=()=>{if(g.ended||done||t.classList.contains('used'))return;ans.value+=t.dataset.l;sync()});
+  }
+  function submit(){
+    if(g.ended||done)return;const w=pool[i][0],v=ans.value.trim().toUpperCase();
+    if(!v)return fb('Type or tap some letters first.',false);
+    if(v.length!==w.length)return fb(`The word has ${w.length} letters.`,false);
+    if(v!==w)return miss(g,'Not quite, try again!');
+    done=true;award(g,'You unscrambled it!');i++;
+    if(i>=pool.length)finish('complete');else g.later(load,800);
+  }
+  $('#sub').onclick=submit;$('#clr').onclick=()=>{ans.value='';sync()};
+  ans.oninput=sync;ans.onkeydown=e=>{if(e.key==='Enter')submit()};
+  load();
+  return{hint(){if(done)return false;const w=pool[i][0];hk=Math.min(hk+1,w.length-1);ans.value=w.slice(0,hk);sync();return`The word starts with "${w.slice(0,hk)}".`}};
+},
+
+/* ---- Word Search ---- */
+search(g,area,ctl){
+  const N=g.diff==='b'?7:9,words=shuffle(g.diff==='b'?SW_B:SW_I,g.rng).slice(0,g.diff==='b'?4:6);
+  const dirs=g.diff==='b'?[[0,1],[1,0]]:[[0,1],[1,0],[1,1],[0,-1],[-1,0]];
+  let grid,places;
+  for(let a=0;a<60;a++){                                   // build grid; retry if a word cannot be placed
+    grid=Array.from({length:N},()=>Array(N).fill(''));places=[];let ok=true;
+    for(const w of [...words].sort((x,y)=>y.length-x.length)){
+      let placed=false;
+      for(let t=0;t<200&&!placed;t++){
+        const[dr,dc]=dirs[Math.floor(g.rng()*dirs.length)],r=Math.floor(g.rng()*N),c=Math.floor(g.rng()*N);
+        const er=r+dr*(w.length-1),ec=c+dc*(w.length-1);
+        if(er<0||er>=N||ec<0||ec>=N)continue;
+        let fits=true;for(let k=0;k<w.length;k++){const v=grid[r+dr*k][c+dc*k];if(v&&v!==w[k]){fits=false;break}}
+        if(!fits)continue;
+        const cells=[];for(let k=0;k<w.length;k++){grid[r+dr*k][c+dc*k]=w[k];cells.push([r+dr*k,c+dc*k])}
+        places.push({w,cells,found:false});placed=true;
+      }
+      if(!placed){ok=false;break}
+    }
+    if(ok)break;
+  }
+  const L='ABCDEFGHIKLMNOPRSTUW';
+  grid=grid.map(row=>row.map(v=>v||L[Math.floor(g.rng()*L.length)]));
+  area.innerHTML=`<p>Find ${words.length} words. Tap letters in a straight line.</p><ul class="words" id="wl">${places.map(p=>`<li data-w="${p.w}">${p.w}</li>`).join('')}</ul>
+   <div class="sgrid" id="sg" style="grid-template-columns:repeat(${N},auto)">${grid.map((row,r)=>row.map((ch,c)=>`<button class="cell" data-r="${r}" data-c="${c}" aria-label="Letter ${ch}">${ch}</button>`).join('')).join('')}</div>`;
+  ctl.innerHTML=`<button class="btn go" id="chk">Check</button><button class="btn" id="clr">Clear selection</button>`;
+  const cells=[...document.querySelectorAll('.cell')],cellAt=(r,c)=>cells[r*N+c];
+  let sl=[];
+  const paint=()=>cells.forEach(b=>b.classList.toggle('sel',sl.some(s=>s[0]==b.dataset.r&&s[1]==b.dataset.c)));
+  const text=()=>sl.map(([r,c])=>grid[r][c]).join('');
+  const matches=(p,s)=>p.w===s||p.w===[...s].reverse().join('');
+  $('#sg').onclick=e=>{
+    const b=e.target.closest('.cell');if(!b||g.ended)return;
+    const r=+b.dataset.r,c=+b.dataset.c,Lc=sl[sl.length-1],at=sl.findIndex(s=>s[0]===r&&s[1]===c);
+    if(at>=0&&at===sl.length-1)sl.pop();                                // tap last cell again = undo
+    else if(!Lc||at>-1)sl=[[r,c]];
+    else{
+      const dr=r-Lc[0],dc=c-Lc[1];
+      if(Math.max(Math.abs(dr),Math.abs(dc))>1)sl=[[r,c]];             // must be adjacent
+      else if(sl.length>1&&(dr!==sl[1][0]-sl[0][0]||dc!==sl[1][1]-sl[0][1]))sl=[[r,c]]; // must keep direction
+      else sl.push([r,c]);
+    }
+    paint();
+    const p=places.find(p=>!p.found&&sl.length>=2&&matches(p,text()));
+    if(p){
+      p.found=true;p.cells.forEach(([r,c])=>cellAt(r,c).classList.add('found'));
+      document.querySelector(`li[data-w="${p.w}"]`).classList.add('done');sl=[];paint();
+      award(g,`Found ${p.w}!`);if(places.every(x=>x.found))finish('complete');
+    }
+  };
+  $('#chk').onclick=()=>{
+    if(g.ended)return;
+    if(sl.length<2)return fb('Select at least two letters first.',false);
+    if(places.some(p=>p.found&&matches(p,text()))){sl=[];paint();return fb('You already found that word (no extra points).',true)}
+    miss(g,'That is not a hidden word.');sl=[];paint();
+  };
+  $('#clr').onclick=()=>{sl=[];paint()};
+  return{hint(){
+    const left=places.filter(p=>!p.found);if(!left.length)return false;
+    const p=left[Math.floor(Math.random()*left.length)],b=cellAt(...p.cells[0]);
+    b.classList.add('hint');g.later(()=>b.classList.remove('hint'),2500);
+    return`Look for "${p.w}". It starts at the glowing letter.`;
+  }};
+},
+
+/* ---- Guess the Word ---- */
+guess(g,area,ctl){
+  const pool=shuffle(g.diff==='b'?GU_B:GU_I,g.rng).slice(0,5);let i=0,rev=new Set(),wrong=0,done=false;
+  area.innerHTML=`<span class="chip" id="prog"></span><p class="clue" id="clue"></p><div class="mask" id="mask"></div><p id="tries"></p><input id="ans" class="field" autocomplete="off" aria-label="Your guess" placeholder="Type your guess">`;
+  ctl.innerHTML=`<button class="btn go" id="sub">Submit</button>`;
+  const ans=$('#ans');
+  const draw=()=>{const w=pool[i][0];$('#mask').innerHTML=[...w].map((ch,k)=>`<span class="slot">${rev.has(k)||done?ch:''}</span>`).join('');$('#tries').textContent=`Tries left: ${3-wrong}`};
+  function load(){const[w,c]=pool[i];rev=new Set();wrong=0;done=false;ans.value='';$('#prog').textContent=`Word ${i+1} of ${pool.length}`;$('#clue').textContent='Clue: '+c;draw()}
+  const advance=()=>{i++;if(i>=pool.length)finish('complete');else load()};
+  function submit(){
+    if(g.ended||done)return;const w=pool[i][0],v=ans.value.trim().toUpperCase();
+    if(!v)return fb('Type a guess first.',false);
+    if(!/^[A-Z]+$/.test(v))return fb('Use letters only.',false);
+    if(v.length!==w.length)return fb(`The word has ${w.length} letters.`,false);
+    if(v===w){done=true;draw();award(g,'You got it!');g.later(advance,900);return}
+    wrong++;miss(g,'Not that one.');ans.value='';
+    if(wrong>=3){done=true;draw();fb(`Out of tries. The answer was ${w}.`,false);g.later(advance,1600)}else draw();
+  }
+  $('#sub').onclick=submit;ans.onkeydown=e=>{if(e.key==='Enter')submit()};
+  load();
+  return{hint(){
+    if(done)return false;const w=pool[i][0],un=[...w].map((_,k)=>k).filter(k=>!rev.has(k));
+    if(un.length<=1)return false;const k=un[Math.floor(g.rng()*un.length)];rev.add(k);draw();return`Revealed letter ${k+1}: ${w[k]}.`;
+  }};
+},
+
+/* ---- Memory Match ---- */
+memory(g,area,ctl){
+  const pairs=g.diff==='b'?6:10,cols=g.diff==='b'?4:5;
+  const deck=shuffle(shuffle(EMOJI,g.rng).slice(0,pairs).flatMap(e=>[e,e]),g.rng);
+  area.innerHTML=`<p>Find all ${pairs} pairs.</p><div class="mgrid" style="grid-template-columns:repeat(${cols},1fr)">${deck.map((e,k)=>`<button class="mcard" data-i="${k}" aria-label="Card ${k+1}, face down">?</button>`).join('')}</div>`;
+  ctl.innerHTML='';
+  const cs=[...document.querySelectorAll('.mcard')];let open=[],matched=new Set(),lock=false;
+  const face=(k,up)=>{cs[k].textContent=up?deck[k]:'?';cs[k].classList.toggle('open',up&&!matched.has(k))};
+  cs.forEach((b,k)=>b.onclick=()=>{
+    if(g.ended||lock||matched.has(k)||open.includes(k))return;
+    face(k,true);open.push(k);
+    if(open.length<2)return;
+    const[a,c]=open;
+    if(deck[a]===deck[c]){matched.add(a);matched.add(c);cs[a].classList.add('match');cs[c].classList.add('match');open=[];award(g,'Match!');if(matched.size===deck.length)finish('complete')}
+    else{lock=true;miss(g,'No match.');g.later(()=>{face(a,false);face(c,false);open=[];lock=false},800)}
+  });
+  return{hint(){
+    if(lock)return false;lock=true;
+    deck.forEach((_,k)=>face(k,true));
+    g.later(()=>{deck.forEach((_,k)=>{if(!matched.has(k)&&!open.includes(k))face(k,false)});lock=false},1300);
+    return'Peek! Memorize the cards quickly.';
+  }};
+},
+
+/* ---- Sequence Memory ---- */
+sequence(g,area,ctl){
+  const np=g.diff==='b'?4:6,start=g.diff==='b'?3:4,rounds=g.diff==='b'?4:5;
+  let r=0,seq=[],idx=0,phase='wait';
+  area.innerHTML=`<span class="chip" id="prog"></span><p class="clue" id="state">Get ready…</p><div class="pads" id="pads">${PADS.slice(0,np).map((p,k)=>`<button class="pad" data-k="${k}" style="background:${p[0]}" aria-label="Pad ${k+1}">${p[1]}<br><small>${k+1}</small></button>`).join('')}</div>`;
+  ctl.innerHTML='';
+  const pads=[...document.querySelectorAll('.pad')];
+  const flash=(k,ms=450)=>{pads[k].classList.add('lit');g.later(()=>pads[k].classList.remove('lit'),ms)};
+  function play(){
+    phase='watch';idx=0;$('#state').textContent='Watch carefully…';let t=600;
+    seq.forEach(k=>{g.later(()=>flash(k),t);t+=750});
+    g.later(()=>{phase='input';$('#state').textContent='Your turn! Repeat the pattern.'},t);
+  }
+  function round(){$('#prog').textContent=`Round ${r+1} of ${rounds} (${start+r} symbols)`;seq=Array.from({length:start+r},()=>Math.floor(g.rng()*np));play()}
+  pads.forEach((b,k)=>b.onclick=()=>{
+    if(g.ended||phase!=='input')return;flash(k,200);
+    if(k===seq[idx]){
+      idx++;
+      if(idx===seq.length){phase='wait';award(g,'Pattern complete!');r++;if(r>=rounds)finish('complete');else g.later(round,1000)}
+    }else{phase='wait';miss(g,'Wrong pad! Watch again.');g.later(play,1000)}
+  });
+  g.later(round,500);
+  return{hint(){if(phase!=='input')return false;play();return'Replaying the pattern.'}};
+}
+};
+
+/* ================= Screens ================= */
+const stat=(i,l,v)=>`<div class="stat"><span>${i}</span><b>${v}</b><small>${l}</small></div>`;
+
+function renderHome(){
+  const tot=totalPts(),lvl=Math.floor(tot/800)+1,pr=Math.round(tot%800/8),dg=dailyGame(),dd=S.daily[today()];
+  $('#home').innerHTML=`
+  <div class="card hero"><div>
+    <h1>Welcome to BrainPlay, ${esc(S.name)}! 🎉</h1>
+    <p>Five fun word and memory games to wake up your brain. Play a few minutes a day and keep your streak alive.</p>
+    <button class="btn go big" data-act="go" data-v="select">▶ Play Now</button>
+    <p><label>Your name: <input class="name" id="nameIn" maxlength="14" value="${esc(S.name)}" aria-label="Your name"></label></p></div>
+    <div style="font-size:6rem" aria-hidden="true">🧠</div></div>
+  <div class="grid g3">${stat('🏅','Level '+lvl+' ('+pr+'% to next)',lvl)}${stat('🔥','Day streak',curStreak())}${stat('⭐','Best score',bestPts())}</div>
+  <div class="card" style="background:var(--sun)"><h2>📅 Daily Challenge</h2>
+    <p><b>${dg.icon} ${dg.name}</b> (Intermediate). Everyone gets the same puzzle today. First finish earns +${PTS.daily} bonus points.</p>
+    ${dd?`<p>${dd.done?'✅ Completed':'Attempted'} today. Best score: <b>${dd.score}</b></p>`:''}
+    <button class="btn alt" data-act="daily">${dd?'Play again':'Start Daily Challenge'}</button></div>
+  <h2>Game modes</h2><div class="grid g5">${GAMES.map(m=>`<button class="card pick" style="background:${m.color}" data-act="pickgo" data-v="${m.id}"><span class="ico">${m.icon}</span><b>${m.name}</b><small>${m.desc}</small></button>`).join('')}</div>`;
+}
+
+function renderSelect(){
+  const m=gameMeta(sel.game);
+  $('#select').innerHTML=`<h1>Choose a game</h1>
+  <div class="grid g5">${GAMES.map(x=>`<button class="card pick ${x.id===sel.game?'on':''}" style="background:${x.color}" aria-pressed="${x.id===sel.game}" data-act="pick" data-v="${x.id}"><span class="ico">${x.icon}</span><b>${x.name}</b></button>`).join('')}</div>
+  <div class="card" style="background:${m.color}"><h2>${m.icon} ${m.name}</h2><p>${m.desc}</p><p><b>How to play:</b> ${m.how}</p>
+    <div class="seg" role="group" aria-label="Difficulty">${['b','i'].map(d=>`<button class="${sel.diff===d?'on':''}" data-act="diff" data-v="${d}">${DIFF[d]}</button>`).join('')}</div>
+    <p>⏱ Time: ${m.time[sel.diff]} seconds. 💡 Hints: ${m.hints[sel.diff]}.</p>
+    <button class="btn go big" data-act="play">Start Game ▶</button></div>
+  <div class="card"><h3>Scoring rules</h3><ul>
+    <li>Each correct answer: <b>+${PTS.correct}</b> plus up to <b>+${PTS.speed}</b> speed bonus (more time left = more bonus).</li>
+    <li>Each wrong answer: <b>−${m.pen}</b> points.</li>
+    <li>Each hint: <b>−${PTS.hint}</b> points. Beginner has more hints, Intermediate fewer.</li>
+    <li>Finish every puzzle: <b>+${PTS.finish}</b> bonus. Daily Challenge first completion: <b>+${PTS.daily}</b>.</li>
+    <li>Every answer scores only once, and your score never drops below zero.</li>
+    <li>When time runs out the game ends and you keep your points.</li></ul></div>`;
+}
+
+function renderResults(r,newBest){
+  const m=gameMeta(r.game),stars=r.complete?(r.acc>=90?3:r.acc>=70?2:1):(r.correct>0?1:0);
+  $('#results').innerHTML=`<div class="card res"><div class="stars" aria-label="${stars} stars">${'⭐'.repeat(stars)}${'☆'.repeat(3-stars)}</div>
+  <h1>${r.complete?'Puzzle solved! 🎉':"Time's up! ⏰"}</h1><p>${m.icon} ${m.name} (${DIFF[r.diff]})</p>
+  <p class="big">${r.score} points</p>${newBest?'<p><b>🏆 New personal best!</b></p>':''}
+  <div class="grid g3">${stat('🎯','Accuracy',r.acc+'%')}${stat('⏱','Time taken',Math.floor(r.secs/60)+':'+pad2(r.secs%60))}${stat('✅','Correct',r.correct)}${stat('❌','Mistakes',r.mistakes)}${stat('💡','Hints used',r.hints)}</div>
+  <div class="row"><button class="btn go" data-act="retry">↻ Retry</button><button class="btn sky" data-act="next">Next Game ▶</button><button class="btn" data-act="go" data-v="home">🏠 Return Home</button><button class="btn alt" data-act="go" data-v="dash">📊 Dashboard</button></div></div>`;
+}
+
+function renderDash(){
+  const n=S.games.length,acc=n?Math.round(S.games.reduce((a,g)=>a+g.acc,0)/n):0;
+  const recent=[...S.games].reverse().slice(0,8),top=[...S.games].sort((a,b)=>b.score-a.score).slice(0,10);
+  const row=(g,k)=>{const m=gameMeta(g.game);return`<tr>${k!=null?`<td>${['🥇','🥈','🥉'][k]||k+1}</td>`:''}<td>${k!=null?esc(g.name):g.date}</td><td>${m.icon} ${m.name}</td><td>${DIFF[g.diff]}</td><td><b>${g.score}</b></td>${k==null?`<td>${g.acc}%</td><td>${g.complete?'Solved':'Time up'}</td>`:''}</tr>`};
+  $('#dash').innerHTML=`<h1>Your dashboard 📊</h1>
+  <div class="grid g5">${stat('🎮','Games completed',n)}${stat('🏆','Highest score',bestPts())}${stat('🎯','Average accuracy',acc+'%')}${stat('🔥','Current streak',curStreak())}${stat('🌟','Longest streak',S.longest)}</div>
+  <h2>Difficulty progression</h2><div class="card">${['b','i'].map(d=>{const L=S.games.filter(g=>g.diff===d),avg=L.length?Math.round(L.reduce((a,g)=>a+g.score,0)/L.length):0;
+    return`<p><b>${DIFF[d]}</b>: ${L.length} games, average ${avg} points</p><div class="prog" role="progressbar" aria-valuenow="${Math.min(100,L.length*20)}" aria-valuemin="0" aria-valuemax="100"><i style="width:${Math.min(100,L.length*20)}%"></i></div><small>${L.length>=5?'Mastered! ⭐':(5-L.length)+' more games to master this level'}</small>`}).join('<br><br>')}</div>
+  <h2>Recent games</h2><div class="card tw">${n?`<table><tr><th>Date</th><th>Game</th><th>Level</th><th>Score</th><th>Accuracy</th><th>Result</th></tr>${recent.map(g=>row(g)).join('')}</table>`:'<p class="empty">No games yet. Play your first puzzle to see your history here!</p>'}</div>
+  <h2>Local leaderboard</h2><div class="card tw">${n?`<table><tr><th>#</th><th>Player</th><th>Game</th><th>Level</th><th>Score</th></tr>${top.map((g,k)=>row(g,k)).join('')}</table>`:'<p class="empty">The leaderboard is empty. Set the first high score!</p>'}</div>
+  <h2>Achievements</h2><div class="grid g5">${ACH.map(a=>{const ok=a[3](S);return`<div class="card ach ${ok?'':'lock'}"><span>${a[0]}</span><b>${a[1]}</b><small>${a[2]}</small><small>${ok?'Unlocked ✓':'Locked'}</small></div>`}).join('')}</div>
+  <p><button class="btn alt" data-act="wipe">Reset all data</button></p>`;
+}
+
+/* ================= Init ================= */
+show('home');
+</script>
+</body>
+</html>
